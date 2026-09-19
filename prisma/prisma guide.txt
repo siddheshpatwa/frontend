@@ -1,0 +1,3 @@
+npx prisma init  = to initialise prisma
+npx generate prisma = used to generateclient for prisma
+npx prisma migrate dev = when u want add table add query in prisma and  npx prisma migrate dev command it will work  
