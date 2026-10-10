@@ -6,7 +6,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useWorkspaceStore } from "@/modules/layout/store";
-import RequestPlayground from "@/modules/request/components/request-playgound";
+import RequestPlayground from "@/modules/request/components/request-playground";
 
 import TabbedSidebar from "@/modules/workspace/components/sidebar";
 

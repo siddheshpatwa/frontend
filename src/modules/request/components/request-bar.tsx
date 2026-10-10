@@ -6,7 +6,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -23,21 +22,22 @@ interface Props {
 
 const RequestBar = ({ tab, updateTab }: Props) => {
 
-  const {mutateAsync , isPending , isError} = useRunRequest(tab?.requestId!);
+  const { mutateAsync, isPending } = useRunRequest(tab);
   const requestColorMap: Record<string, string> = {
     GET: "text-green-500",
     POST: "text-blue-500",
     PUT: "text-yellow-500",
+    PATCH: "text-orange-500",
     DELETE: "text-red-500",
   };
 
   const onSendRequest = async () => {
     try {
       const res = await mutateAsync();
-      
-      toast.success('Request sent successfully!');
+      if (res.success) toast.success('Request sent successfully!');
+      else toast.error(res.error || 'Request failed.');
     } catch (error) {
-      toast.error('Failed to send request.');
+      toast.error(error instanceof Error ? error.message : 'Failed to send request.');
     }
   }
 
@@ -56,6 +56,7 @@ const RequestBar = ({ tab, updateTab }: Props) => {
               <SelectItem value="GET" className="text-green-500">GET</SelectItem>
               <SelectItem value="POST" className="text-blue-500">POST</SelectItem>
               <SelectItem value="PUT" className="text-yellow-500">PUT</SelectItem>
+              <SelectItem value="PATCH" className="text-orange-500">PATCH</SelectItem>
               <SelectItem value="DELETE" className="text-red-500">DELETE</SelectItem>
             </SelectGroup>
           </SelectContent>

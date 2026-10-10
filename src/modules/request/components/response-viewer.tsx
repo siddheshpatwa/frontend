@@ -205,10 +205,10 @@ const ResponseViewer = ({ responseData }: Props) => {
                     >
                       {
                         Object.keys(
-                          typeof responseData.requestRun.headers === "object" &&
-                          responseData.requestRun.headers !== null &&
-                          !Array.isArray(responseData.requestRun.headers)
-                            ? responseData.requestRun.headers
+                          typeof responseData.requestRun?.headers === "object" &&
+                          responseData.requestRun?.headers !== null &&
+                          !Array.isArray(responseData.requestRun?.headers)
+                            ? responseData.requestRun?.headers
                             : {}
                         ).length
                       }
@@ -317,10 +317,10 @@ const ResponseViewer = ({ responseData }: Props) => {
                   <div className="p-6">
                     <div className="space-y-3">
                       {Object.entries(
-                        (typeof responseData.requestRun.headers === "object" &&
-                        responseData.requestRun.headers !== null &&
-                        !Array.isArray(responseData.requestRun.headers)
-                          ? responseData.requestRun.headers
+                        (typeof responseData.requestRun?.headers === "object" &&
+                        responseData.requestRun?.headers !== null &&
+                        !Array.isArray(responseData.requestRun?.headers)
+                          ? responseData.requestRun?.headers
                           : {}) as Record<string, unknown>
                       ).map(([key, value]) => (
                         <div

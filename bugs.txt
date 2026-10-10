@@ -1,0 +1,185 @@
+BUGS AND RISKS - frontend (branch: master)
+Date: 2026-10-10
+Status: nothing committed. Fixes already applied in the working tree are listed at the end.
+
+How each item was found:
+  [TESTED]    reproduced by running the code (curl, local mock server, build)
+  [CODE]      found by reading the code only, NOT run (needs a logged-in session + DB)
+
+Not tested at all (blocked): anything behind Google/GitHub login, and any test that
+writes to the database. A throwaway test database could not be created, so
+collections, requests, run/history, invites, realtime presets are [CODE] only.
+
+=====================================================================
+A. SECURITY - fix before any deploy
+=====================================================================
+
+A1. [TESTED] AI endpoints have no login check
+    POST /api/ai/suggest-name and /api/ai/generate-json returned 200 with no
+    cookie. Anyone with the URL can spend the Gemini quota.
+    Files: src/app/api/ai/suggest-name/route.ts, src/app/api/ai/generate-json/route.ts
+    Fix: call auth.api.getSession in each route, return 401 if none.
+
+A2. [CODE] Server actions do not check who is calling or who owns the data
+    Files with no currentUser() check:
+      src/modules/collections/action/index.ts  (create/get/edit/delete)
+      src/modules/request/action/index.ts      (add/save/get/run/runDirect/sendRequest)
+      src/modules/realtime/action/index.ts     (presets and messages)
+    Any caller who knows an ID can read, edit or delete another user's
+    collections, requests and presets.
+    Also getAllWorkspaceMembers and getWorkspaceById return data for any ID
+    (getAllWorkspaceMembers includes the full user record).
+    Fix: check the session in every action and confirm the user is a member of
+    the workspace that owns the record.
+
+A3. [CODE] Anyone logged in can create invites for any workspace
+    generateWorkspaceInvite only checks that a user is logged in, not that they
+    belong to (or administer) the workspace. src/modules/invites/action/index.ts
+
+A4. [TESTED] Send Request can reach internal addresses (SSRF)
+    sendRequest made a server-side call to http://127.0.0.1:5433 (your Postgres).
+    On a public host this can reach cloud metadata endpoints and private services.
+    File: src/modules/request/action/index.ts (sendRequest)
+    Fix: block private/loopback/link-local ranges, allow only http/https.
+
+A5. [CODE] Server logs every response body
+    console.log(res.data) in sendRequest prints full response bodies (can include
+    tokens or personal data) to server logs. ~22 console.log calls across src/modules.
+
+=====================================================================
+B. WILL BREAK IN PRODUCTION
+=====================================================================
+
+B1. [CODE] Auth client base URL is hardcoded to http://localhost:3000
+    src/lib/auth-client.ts. Sign-in from a deployed site will call localhost.
+    Fix: use NEXT_PUBLIC_APP_URL, or remove baseURL (same domain).
+
+B2. [TESTED] NEXT_PUBLIC_APP_URL is missing from .env
+    Invite links are built as `${process.env.NEXT_PUBLIC_APP_URL}/invite/...`
+    and would start with "undefined". src/modules/invites/action/index.ts:23
+
+B3. [CODE] OAuth callback URLs and BETTER_AUTH_URL only cover localhost
+    Add the deployed callbacks (/api/auth/callback/google, /api/auth/callback/github)
+    in both provider consoles and set BETTER_AUTH_URL to the deployed address.
+
+B4. [TESTED] Node version
+    Machine runs Node 20; a Prisma sub-package requires Node 22+. Use Node 22 on
+    the deploy target.
+
+=====================================================================
+C. FUNCTIONAL BUGS
+=====================================================================
+
+C1. [TESTED] No request timeout
+    A server that never answers leaves Send hanging forever (still pending after
+    15 s in test). Add a timeout (e.g. 30 s) to the axios config in sendRequest.
+
+C2. [CODE] Error message is lost when a request fails
+    run() saves body = null when result.error is set, so the response viewer
+    shows no reason (e.g. "connect ECONNREFUSED", "Invalid URL").
+    Fix: store result.error in the run body / statusText.
+
+C3. [TESTED] URLs without a scheme fail
+    "example.com" returns "Invalid URL". Prepend https:// when the scheme is
+    missing, or show a clear message.
+
+C4. [CODE] PATCH cannot be chosen
+    The database and types support PATCH, but the method dropdown in
+    src/modules/request/components/request-bar.tsx only lists GET, POST, PUT,
+    DELETE.
+
+C5. [CODE] Send only works on saved requests
+    RequestBar uses run(tab.requestId). An unsaved tab has no requestId, so the
+    lookup fails and the user sees "Failed to send request." runDirect() exists in
+    the action file but nothing uses it. Same behaviour as the reference repo.
+
+C6. [TESTED] Wrong response size for text and empty bodies
+    Size is computed from JSON.stringify(data), which adds quotes: "hello" (5 bytes)
+    shows 7, an empty 204 shows 2. Use the raw byte length.
+
+C7. [CODE] Failures are swallowed and return undefined
+    collections actions (and several workspace actions) catch errors, only
+    console.log them, and return undefined. The UI cannot show an error, and
+    TanStack Query treats it as success.
+
+C8. [CODE] Accepting an invite as an existing member throws
+    acceptWorkspaceInvite creates the membership without checking one exists; the
+    (userId, workspaceId) unique constraint then raises a raw database error.
+
+C9. [CODE] currentUser() hides Next.js's "dynamic route" signal
+    The try/catch also catches DYNAMIC_SERVER_USAGE, so production builds print
+    an "Error fetching current user" stack trace. Harmless at runtime, but noisy.
+
+C10. [CODE] Realtime presets/messages use onDelete: SetNull
+    Deleting a workspace leaves orphaned presets and messages with a null
+    workspaceId/presetId instead of removing them.
+
+=====================================================================
+D. CODE QUALITY
+=====================================================================
+
+D1. [TESTED] ESLint: 42 errors, 82 warnings (build still passes)
+    Mostly `any`, unused variables, @ts-ignore (use @ts-expect-error), and
+    non-null assertions on optional chains (tab?.requestId!).
+D2. Duplicate legacy folder src/authetication/ (misspelled). The workspace layout
+    still imports currentUser from "@/authetication/actions". Use
+    @/modules/authentication/action and delete the old folder.
+D3. Typos in names: request-playgound.tsx, useRequeststore.ts, hook
+    useGetWorkspaceMemebers, folder "action" vs "actions" across modules.
+D4. Stale notes files in the repo root: "bugs list.txt", missing-files.txt,
+    major-differences.txt. Parts are out of date (e.g. they say suggest-name/route.ts
+    is missing; it exists). Remove or update before sharing the repo.
+D5. src/generated/prisma is committed while .gitignore ignores /app/generated/prisma
+    (wrong path). Decide whether to commit the generated client or run
+    `prisma generate` in the deploy build.
+D6. 32 npm audit vulnerabilities (15 critical) reported after install; not reviewed.
+
+=====================================================================
+E. VERIFIED WORKING
+=====================================================================
+  - Production build passes (7 routes); TypeScript passes with no errors.
+  - Logged-out visit to /, /realtime and /invite/x redirects to /sign-in; /sign-in loads.
+  - Google and GitHub sign-in create correct OAuth URLs and callbacks for localhost.
+  - AI name suggestions and AI JSON body generation return valid results; both
+    return 400 for missing input.
+  - sendRequest: GET, POST (object and string body), PUT, PATCH, DELETE, query
+    params, 404 passthrough, text and empty responses, connection refused, bad URL.
+  - All 3 database migrations apply cleanly; schema is up to date.
+
+=====================================================================
+F. FIXES ALREADY APPLIED IN THE WORKING TREE (uncommitted)
+=====================================================================
+  - Renamed api/ai/genearte-json to generate-json (AI calls were getting 404).
+  - Deleted unused src/app/api/ai/route.ts.
+  - AI model changed from retired gemini-2.0-flash to gemini-flash-lite-latest.
+  - react-resizable-panels bumped ^1.0.9 -> ^3.0.6 (React 19 compatible); npm install done.
+  - response-viewer.tsx: added missing optional chaining on requestRun.headers.
+  - (workspace)/layout.tsx: logged-out users now redirect to /sign-in.
+  - package.json: dev script no longer requires docker-compose (new db:up script).
+  - .env: GOOGLE_GENERATIVE_AI_API_KEY added (filled in by the user).
+
+=====================================================================
+G. STILL TO TEST (needs a logged-in session and a test database)
+=====================================================================
+  Workspace create/switch; collection create/rename/delete; request tabs, save with
+  Ctrl+S, history; params/headers/body editors; send with a saved request; invite
+  generate/accept; realtime WebSocket connect, send, reconnect, presets.
+
+=====================================================================
+H. FIX STATUS (second pass, still uncommitted)
+=====================================================================
+FIXED and tested: A1 (AI routes now 401 without login), A4 (private/loopback addresses
+  blocked in production; 22 behaviour tests pass), C1 (30 s timeout), C2, C3, C4, C6.
+FIXED, build/typecheck verified but needs a logged-in test: A2, A3, A5 (server side),
+  B1, B2, C5, C7, C8, C9 (build noise gone), D2, D3 (file renamed), plus a NEW bug found
+  and fixed: headers, params and JSON body were passed to axios in the wrong format, so
+  they were never applied (the main "response not coming back" cause).
+NOT FIXED:
+  B3  OAuth callbacks / BETTER_AUTH_URL - done in the Google/GitHub consoles, not code.
+  B4  Node 20 here; "engines": ">=22" added, install Node 22 to match.
+  C10 SetNull relations - needs a schema migration; decide first (cascade vs keep).
+  D1  31 ESLint errors remain (React-compiler rules, any, @ts-ignore). Build passes.
+  D4  Old notes files left alone (they are yours).
+  D5  Added "postinstall": "prisma generate" so deploys always rebuild the client.
+  D6  npm audit vulnerabilities not touched (npm audit fix may upgrade packages).
+  Client-side console.log calls in realtime/body-editor remain (browser only).

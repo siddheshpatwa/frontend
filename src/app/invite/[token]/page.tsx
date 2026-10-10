@@ -1,4 +1,3 @@
-import db from '@/lib/db';
 import { currentUser } from '@/modules/authentication/action';
 import { acceptWorkspaceInvite } from '@/modules/invites/action';
 import { redirect } from 'next/navigation';
@@ -12,13 +11,15 @@ const Invite = async ({ params }: { params: Promise<{ token: string }> }) => {
         redirect('/sign-in');
     }
 
-    const invite = await acceptWorkspaceInvite(token);
-
-    if (invite.success) {
-        redirect('/');
+    let accepted = false;
+    try {
+        const invite = await acceptWorkspaceInvite(token);
+        accepted = invite.success;
+    } catch (error) {
+        console.error('Invite could not be accepted:', error);
     }
 
-    return redirect('/sign-in');
+    return redirect(accepted ? '/' : '/?invite=invalid');
 
 }
 

@@ -1,8 +1,8 @@
 "use server";
 import db from "@/lib/db";
-import { currentUser } from "@/authetication/actions";
+import { currentUser } from "@/modules/authentication/action";
 import { MEMBER_ROLE } from "@/generated/prisma/client";
-import { error } from "node:console";
+import { requireUser, requireWorkspaceMember } from "@/lib/authz";
 
 export const initializeWorkspace = async () => {
   const user = await currentUser();
@@ -14,20 +14,18 @@ export const initializeWorkspace = async () => {
   }
 
   try {
-    const name = `${user.name}'s Workspace`;
-
     const workspace = await db.workspace.upsert({
       where: {
         name_ownerId: {
-          name:"Personal Workspace",
+          name: "Personal Workspace",
           ownerId: user.id,
         },
       },
       update: {},
       create: {
-        name:"Personal Workspace",
+        name: "Personal Workspace",
         ownerId: user.id,
-        description:"default workspace",
+        description: "default workspace",
         members: {
           create: {
             userId: user.id,
@@ -35,16 +33,16 @@ export const initializeWorkspace = async () => {
           },
         },
       },
-      include:{
-        members:true
-      }
+      include: {
+        members: true,
+      },
     });
     return {
       success: true,
       workspace,
     };
   } catch (error) {
-    console.log("WORKSPACE INITIALIZATION ERROR:",error);
+    console.error("WORKSPACE INITIALIZATION ERROR:", error);
     return {
       success: false,
       error: "Failed to initialize workspace",
@@ -52,63 +50,39 @@ export const initializeWorkspace = async () => {
   }
 };
 
+export const getWorkspaces = async () => {
+  const user = await requireUser();
+  return db.workspace.findMany({
+    where: {
+      OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }],
+    },
+    orderBy: { createdAt: "asc" },
+  });
+};
 
-export const getWorkspaces = async () =>{
-  try{
+export const createWorkspace = async (name: string) => {
+  const user = await requireUser();
+  const trimmed = name?.trim();
+  if (!trimmed) throw new Error("Workspace name is required");
 
-    const user = await currentUser();
-    if( !user) throw  new Error ("Unauthorized");
-    const workspaces= await db.workspace.findMany({
-      where:{
-        OR:[
-          { ownerId:user.id},
-          {members:{some:{userId:user.id}}}
-        ]
+  return db.workspace.create({
+    data: {
+      name: trimmed,
+      ownerId: user.id,
+      members: {
+        create: {
+          userId: user.id,
+          role: MEMBER_ROLE.ADMIN,
+        },
       },
-      orderBy:{createdAt:"asc"}
-    })
-    return workspaces;
-  }
-  catch(error){
-    console.log(error);
-  }
-}
+    },
+  });
+};
 
-export const createWorkspace = async (name:string)=>{
-  try{
- const user = await currentUser();
-    if( !user) throw  new Error ("Unauthorized");
-  const workspace= db.workspace.create({
- data:{
-  name,
-  ownerId:user.id,
-  members:{
-      create:{
-        userId:user.id,
-        role:MEMBER_ROLE.ADMIN
-      }
-  }
- }
-
-  })
-  return workspace
-  }
-catch(error){
-  console.log(error);
-
-}
-}
-export const getWorkspaceById= async (id:string)=>{
-try {
-  const workspace= await db.workspace.findUnique({
-    where:{id},
-    include:{
-      members:true
-    }
-  })
-  return workspace;
-} catch (error) {
-  console.log (error);
-
-}
-}
+export const getWorkspaceById = async (id: string) => {
+  await requireWorkspaceMember(id);
+  return db.workspace.findUnique({
+    where: { id },
+    include: { members: true },
+  });
+};

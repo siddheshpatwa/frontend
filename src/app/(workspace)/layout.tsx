@@ -1,12 +1,15 @@
 import Headers from "@/modules/layout/components/header";
 import React from "react";
-import { currentUser } from "@/authetication/actions";
+import { redirect } from "next/navigation";
+import { currentUser } from "@/modules/authentication/action";
 import { initializeWorkspace } from "@/modules/workspace/actions";
 import TabbedLeftPanel from "@/modules/workspace/components/tabbed-left-panel";
 
 const WorkspaceLayout = async ({ children }: { children: React.ReactNode }) => {
-  const workspace = await initializeWorkspace();
   const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
+  await initializeWorkspace();
 
   return (
     <div className="flex flex-col h-screen">

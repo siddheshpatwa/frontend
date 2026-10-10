@@ -2,7 +2,7 @@
 
 import { Unplug,Search } from "lucide-react"
 import React from "react"
-import UserButton from "@/authetication/user-button"
+import UserButton from "@/modules/authentication/components/user-button"
 import { UserProps } from "../types"
 import { headers } from "next/headers"
 import SearchBar from "./search-bar"

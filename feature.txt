@@ -1,0 +1,154 @@
+FEATURES AND POST-DEPLOY TEST PLAN - frontend (Postman-style API client)
+Date: 2026-10-10
+Stack: Next.js 16, React 19, Prisma 7 + PostgreSQL, better-auth (Google + GitHub), TanStack Query, Zustand, Monaco editor, Gemini AI.
+
+Tested by the owner locally: sign-in, logout/login, and the main features, all working.
+Tested by Claude: AI endpoints, send-request logic (22 tests), build, typecheck.
+Mark each box below after testing the DEPLOYED site.
+
+=====================================================================
+1. FEATURE LIST
+=====================================================================
+
+1.1 Authentication
+  - Sign in with Google or GitHub (/sign-in)
+  - Logged-out visitors are redirected to /sign-in (/, /realtime, /invite/...)
+  - Logged-in visitors on /sign-in are redirected to /
+  - User menu in the header with sign out
+
+1.2 Workspaces
+  - "Personal Workspace" is created automatically on first login
+  - Create more workspaces, switch between them (header)
+  - Only members of a workspace can see its data
+
+1.3 Collections (left sidebar, "Collections" tab)
+  - Create, rename and delete collections
+  - Collection folders expand to show their saved requests
+  - Empty state when a workspace has no collections
+
+1.4 Requests (REST playground, route /)
+  - Multiple request tabs; new tab with Ctrl+G (Cmd+Shift+N on Mac)
+    NOTE: the empty-state screen says "Ctrl+Shift+N" but the real shortcut is Ctrl+G
+  - Methods: GET, POST, PUT, PATCH, DELETE
+  - URL bar (https:// is added automatically if missing)
+  - Query params and headers editor (key / value / enable-disable toggle)
+  - JSON body editor (Monaco): format, copy, clear, validation
+  - AI "generate JSON body" from a text prompt
+  - AI request-name suggestions (3 options) when saving
+  - Save request into a collection (Ctrl+S), update a saved request (Ctrl+S)
+  - Rename tab, unsaved-changes marker
+
+1.5 Send and response
+  - Send a saved request (stored in history) or an unsaved tab (not stored)
+  - Response viewer: status, time, size, body (pretty JSON), headers
+  - Errors shown with a message (timeout after 30 s, bad URL, connection refused)
+  - Private/internal addresses are blocked in production (localhost, 10.x, 192.168.x, 169.254.x)
+
+1.6 Invites and members
+  - Admin generates an invite link (valid 7 days, single use)
+  - Members shown as an avatar stack
+  - Opening an invite link joins the workspace as VIEWER (login required)
+
+1.7 Realtime (WebSocket client, route /realtime)
+  - Connect to ws:// or wss:// URL, connection status
+  - Send messages, log of sent/received messages with direction
+  - Auto-reconnect with retry limit
+  - Saved presets (name, URL, protocols, params) per workspace
+  - Messages saved per preset
+
+1.8 Global
+  - Command/search dialog with Ctrl+K (Cmd+K)
+  - Dark UI, toast notifications, resizable panels (request area | sidebar)
+  - Left rail switches between REST ("/") and Realtime ("/realtime")
+
+1.9 Known placeholders (not built yet)
+  - Sidebar tabs "History", "Share" and "Code" have no content of their own
+  - Collection search box in the sidebar is not wired to anything checked
+  - VERIFY these on the deployed site; do not count them as failures
+
+=====================================================================
+2. BEFORE TESTING THE DEPLOYED SITE (setup checks)
+=====================================================================
+  [ ] Environment variables set on the host:
+        DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL (= deployed URL),
+        NEXT_PUBLIC_APP_URL (= deployed URL), GoogleClientId, GoogleClientSecret,
+        GitHubClientId, GitHubClientSecret, GOOGLE_GENERATIVE_AI_API_KEY
+  [ ] Google console: redirect URI https://<site>/api/auth/callback/google
+  [ ] GitHub app:     callback URL  https://<site>/api/auth/callback/github
+  [ ] Production database migrated:  npx prisma migrate deploy
+  [ ] Node 22 on the host; build command runs "next build" (postinstall runs prisma generate)
+  [ ] Use a NEW Gemini key for production (do not reuse the one in your local .env)
+  [ ] Site served over HTTPS
+
+=====================================================================
+3. TEST CHECKLIST (run in order on the deployed site)
+=====================================================================
+
+A. Auth
+  [ ] Open the site logged out -> lands on /sign-in
+  [ ] Sign in with Google -> returns to the app, no redirect_uri error
+  [ ] Sign in with GitHub -> same
+  [ ] Refresh the page -> still logged in
+  [ ] Sign out -> back on /sign-in; opening / redirects to /sign-in again
+  [ ] Open /sign-in while logged in -> redirected to /
+
+B. Workspace and collections
+  [ ] "Personal Workspace" exists after first login
+  [ ] Create a second workspace; switch to it and back
+  [ ] Create a collection; rename it; delete it
+  [ ] Reload -> collections persist
+
+C. Requests and sending
+  [ ] GET https://echo.hoppscotch.io (default) -> 200 and body shown
+  [ ] Add params (?a=1) -> visible in the echoed URL
+  [ ] Add a header (X-Test: 1) -> echoed back
+  [ ] Disabled header is NOT sent
+  [ ] POST with JSON body -> body echoed, content type is JSON
+  [ ] PUT, PATCH, DELETE each return a response
+  [ ] URL without https:// (e.g. echo.hoppscotch.io) works
+  [ ] Unsaved tab: Send works
+  [ ] Save request to a collection (Ctrl+S) -> appears in the sidebar after reload
+  [ ] Edit a saved request, Ctrl+S -> change persists after reload
+  [ ] Send a saved request twice -> both succeed (history stored)
+  [ ] Bad URL -> clear error toast and message in the viewer
+  [ ] http://localhost:3000 and http://169.254.169.254 -> blocked message (production only)
+  [ ] Very slow URL -> times out after 30 s with a message
+  [ ] Large response renders without freezing the page
+
+D. AI
+  [ ] "Generate JSON body" with a prompt -> valid JSON filled in
+  [ ] Save a request -> name suggestions appear
+  [ ] Logged out, call /api/ai/suggest-name directly -> 401
+
+E. Invites and permissions (needs two accounts: A and B)
+  [ ] A generates an invite link -> link starts with the deployed URL (not "undefined", not localhost)
+  [ ] B opens the link while logged out -> sign-in, then joins after login
+  [ ] B sees A's workspace and collections; A sees B in the member avatars
+  [ ] Reusing the same invite link does not create a duplicate member or crash
+  [ ] B (viewer) cannot generate invites
+  [ ] B cannot open or change a workspace they were never invited to (try a copied ID/URL)
+
+F. Realtime
+  [ ] /realtime loads for a logged-in user
+  [ ] Connect to wss://echo.websocket.org (or another echo server) -> status "connected"
+  [ ] Send a message -> sent and echoed messages appear in the log
+  [ ] Disconnect -> status "disconnected"
+  [ ] Wrong URL -> error state, retries then stops
+  [ ] Create a preset, reload, preset and its messages are still there
+  NOTE: on an HTTPS site the browser blocks ws:// (non-secure) URLs; only wss:// will work.
+
+G. General
+  [ ] Ctrl+K opens the search dialog
+  [ ] Ctrl+S inside the editor does not trigger the browser's "Save page"
+  [ ] Layout works on a laptop screen; check a phone width and note what breaks
+  [ ] No errors in the browser console on normal use
+  [ ] Host logs show no stack traces during the tests
+
+=====================================================================
+4. RECORD RESULTS
+=====================================================================
+Tester: ______________   Date: ______________   URL: ______________________
+Failures (step, what happened, error text, screenshot):
+  1.
+  2.
+  3.

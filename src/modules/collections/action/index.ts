@@ -1,70 +1,38 @@
-"use server"
+"use server";
 
-import db from "@/lib/db"
+import db from "@/lib/db";
+import { requireCollectionAccess, requireWorkspaceMember } from "@/lib/authz";
 
-export const createCollections = async ( workspaceId:string,name:string)=>{
-try {
-    const collection = await db.collection.create({
-        data:{
-            name ,
-            workspace:{
-                connect:{
-                id:workspaceId
-                }
-            }
-        }
-    })
- return collection;
-} catch (error) {
-    console.log(error)
-}
-}
+export const createCollections = async (workspaceId: string, name: string) => {
+  await requireWorkspaceMember(workspaceId);
+  const trimmed = name?.trim();
+  if (!trimmed) throw new Error("Collection name is required");
 
-
-export const getCollection = async ( workspaceId:string)=>{
-try {
-    const collection = await db.collection.findMany({
-    where:{
-        workspaceId
-    }
-         
-        
-        
-    })
- return collection;
-} catch (error) {
-    console.log(error)
-}
-}
-
-
-export const deleteCollection = async ( collectionId:string)=>{
-try {
-    const collection = await db.collection.delete({
-    where:{
-        id:collectionId
-    }
-    
-    })
- return collection;
-} catch (error) {
-    console.log(error)
-}
-}
-
-export const editCollection = async ( collectionId:string , name :string)=>{
-try {
-    const collection = await db.collection.update({
-    where:{
-        id:collectionId
+  return db.collection.create({
+    data: {
+      name: trimmed,
+      workspace: { connect: { id: workspaceId } },
     },
-    data:{
-        name
-    }
-    
-    })
- return collection;
-} catch (error) {
-    console.log(error)
-}
-}
+  });
+};
+
+export const getCollection = async (workspaceId: string) => {
+  await requireWorkspaceMember(workspaceId);
+  return db.collection.findMany({ where: { workspaceId } });
+};
+
+export const deleteCollection = async (collectionId: string) => {
+  await requireCollectionAccess(collectionId);
+  return db.collection.delete({ where: { id: collectionId } });
+};
+
+export const editCollection = async (collectionId: string, name: string) => {
+  await requireCollectionAccess(collectionId);
+  const trimmed = name?.trim();
+  if (!trimmed) throw new Error("Collection name is required");
+
+  return db.collection.update({
+    where: { id: collectionId },
+    data: { name: trimmed },
+  });
+};

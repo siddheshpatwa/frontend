@@ -1,6 +1,7 @@
 "use server";
 
 import db from "@/lib/db";
+import { requirePresetAccess, requireUser, requireWorkspaceMember } from "@/lib/authz";
 import { 
   CreateWebSocketPresetInput, 
   UpdateWebSocketPresetInput, 
@@ -9,6 +10,7 @@ import {
 
 
 export const getWebSocketPresets = async (workspaceId: string) => {
+  await requireWorkspaceMember(workspaceId);
   return await db.webSocketPreset.findMany({
     where: { workspaceId },
     include: {
@@ -22,6 +24,7 @@ export const getWebSocketPresets = async (workspaceId: string) => {
 
 
 export const createWebSocketPreset = async (data: CreateWebSocketPresetInput) => {
+  await requireWorkspaceMember(data.workspaceId);
   return await db.webSocketPreset.create({
     data: {
       name: data.name,
@@ -37,6 +40,7 @@ export const updateWebSocketPreset = async (
   presetId: string,
   data: UpdateWebSocketPresetInput
 ) => {
+  await requirePresetAccess(presetId);
   return await db.webSocketPreset.update({
     where: { id: presetId },
     data:{
@@ -50,6 +54,8 @@ export const updateWebSocketPreset = async (
 
 
 export const saveWebSocketMessage = async (data: SaveWebSocketMessageInput) => {
+  if (data.presetId) await requirePresetAccess(data.presetId);
+  else await requireUser();
   return await db.websocketMessage.create({
     data: {
       presetId: data.presetId,
@@ -64,6 +70,7 @@ export const saveWebSocketMessage = async (data: SaveWebSocketMessageInput) => {
 
 
 export const getWebSocketMessages = async (presetId: string) => {
+  await requirePresetAccess(presetId);
   return await db.websocketMessage.findMany({
     where: { presetId },
     orderBy: { timestamp: "asc" },
