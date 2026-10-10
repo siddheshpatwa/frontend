@@ -1,0 +1,4 @@
+ai is not working every time catch block is executing in body .
+because gen api key is missing
+
+response is not geeting main bug on hitting api 

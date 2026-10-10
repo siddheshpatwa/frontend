@@ -1,0 +1,160 @@
+MAJOR DIFFERENCES — YOUR REPO vs REFERENCE REPO
+=================================================
+Reference: https://github.com/Aestheticsuraj234/postman-clone
+Date: October 3, 2026
+
+Only MAJOR functional/structural differences listed below.
+Typos, formatting, and minor style variations ignored.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. MISSING FILE: tabbed-left-panel.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Location: src/modules/workspace/components/tabbed-left-panel.tsx
+
+IMPACT: HIGH — The left navigation panel (REST / Realtime tabs) does not exist in your repo.
+Your (workspace)/layout.tsx has a hardcoded placeholder div: "tabbed left panel"
+Reference has a real component with routing.
+
+What the reference component does:
+  - Renders a vertical icon strip on the left
+  - Has two navigation items: REST (links to "/") and Realtime (links to "/realtime")
+  - Uses usePathname() to highlight the active tab
+  - Each icon is wrapped in a <Hint> tooltip and a Next.js <Link>
+
+Your repo currently has: a static placeholder div with text "tabbed left panel"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. WORKSPACE LAYOUT — Missing TabbedLeftPanel + wrong structure
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: src/app/(workspace)/layout.tsx
+
+Reference layout:
+  - Imports and renders <TabbedLeftPanel /> from workspace/components
+  - Passes workspace prop to <Header />  (Header accepts workspace, not just user)
+  - Uses <SidebarProvider> wrapping the entire layout
+  - No redundant <header> element (reference removed the empty placeholder header)
+  - Uses bg-zinc-950 for the content area
+
+Your layout:
+  - Has a hardcoded div "tabbed left panel" instead of <TabbedLeftPanel />
+  - Has an extra empty <header className="h-16..."> placeholder that reference removed
+  - Does NOT pass workspace prop to <Header>
+  - Header currently receives only user prop (missing workspace prop)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. HEADER — Missing workspace prop + WorkSpace component not wired
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: src/modules/layout/components/header.tsx (your: modules/layout, ref: modules/Layout)
+
+Reference Header:
+  - Accepts: { user: UserProps, workspace: WorkspaceProps }
+  - Renders: <WorkSpace workspace={workspace} />  (passes workspace down)
+  - Imports UserButton from modules/authentication (not from authetication/)
+  - WorkspaceProps type is defined in the Layout types
+
+Your Header:
+  - Accepts: { user: UserProps | null } only — NO workspace prop
+  - <WorkSpace /> component rendered without workspace prop
+  - Imports UserButton from wrong/legacy path (@/authetication/user-button)
+
+MISSING TYPE: WorkspaceProps in src/modules/layout/types/index.ts
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. INVITE MEMBER — Entire functionality missing (just a button in yours)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: src/modules/layout/components/invite-member.tsx
+
+Reference InviteMember:
+  - Full dropdown with invite link generation
+  - Uses useGenerateWorkspaceInvite() and useGetWorkspaceMembers() hooks
+  - Shows current workspace members as avatar stack
+  - Has a text input displaying generated invite URL with copy button
+  - Has a "Generate Link" button that calls the invite action
+  - Uses DropdownMenu wrapping everything
+
+Your InviteMember:
+  - Just a single styled button with <UserPlus> icon
+  - No dropdown, no invite link generation, no member display
+  - None of the invite functionality is wired up
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. AUTHENTICATION MODULE — Split across two paths
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Reference uses ONE path: src/modules/authentication/
+  - actions/index.ts  — currentUser() server action
+  - components/user-button.tsx
+
+Your repo has TWO paths (one is a legacy typo):
+  - src/authetication/actions/index.ts   (LEGACY — wrong spelling)
+  - src/authetication/user-button.tsx    (LEGACY — wrong location)
+  - src/modules/authentication/action/index.ts   (correct but different folder name)
+  - src/modules/authentication/components/user-button.tsx (correct)
+
+IMPACT: Your header.tsx still imports from the legacy src/authetication/ path.
+Any new code added to the correct path won't be used until imports are fixed.
+The layout.tsx also imports currentUser from "@/authetication/actions" (wrong path).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. WORKSPACE MODULE — getWorkspace hook missing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: src/modules/workspace/hooks/workspace.ts
+
+Reference exports:
+  - useWorkspaces()
+  - useCreateWorkspace()
+  - useGetWorkspace(id)    ← YOUR PAGE.TSX USES THIS but it may not work correctly
+
+Your page.tsx (workspace) calls useGetWorkspace() but the actual action backing it
+(getWorkspaceById) needs to be verified — the reference likely has a full workspace
+object returned including members, collections count, etc.
+
+Check: src/modules/workspace/actions/index.ts — does getWorkspaceById return
+the same shape the TabbedSidebar and Header expect?
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. MISSING API ROUTE: /api/ai/suggest-name/route.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Location: src/app/api/ai/suggest-name/route.ts
+
+The folder exists in your project but has NO route.ts file.
+The AI suggestion service (modules/ai/services/index.ts) calls /api/ai/suggest-name
+but there's no handler. This means useSuggestRequestName() will always 404.
+
+Reference has this route implemented.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. LAYOUT TYPES — WorkspaceProps type missing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File: src/modules/layout/types/index.ts
+
+Your file only has: UserProps
+
+Reference adds: WorkspaceProps (used by Header and other layout components)
+WorkspaceProps likely includes: id, name, description, ownerId, createdAt, updatedAt
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY ORDER TO FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HIGH (app is broken/incomplete without these):
+  1. Create tabbed-left-panel.tsx  — navigation between REST and Realtime is missing
+  2. Fix (workspace)/layout.tsx    — wire up TabbedLeftPanel, fix Header workspace prop
+  3. Fix invite-member.tsx         — implement actual invite link generation UI
+  4. Create /api/ai/suggest-name/route.ts — AI name suggestion will 404 without it
+
+MEDIUM (works but uses wrong/legacy paths):
+  5. Consolidate authentication paths — migrate all imports from authetication/ to modules/authentication/
+  6. Add WorkspaceProps to layout types
+  7. Verify Header gets workspace prop passed from layout
+
+LOW (cleanup):
+  8. Remove legacy src/authetication/ folder after migrating imports
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

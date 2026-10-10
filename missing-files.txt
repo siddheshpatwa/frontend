@@ -1,0 +1,190 @@
+MISSING FILES COMPARISON
+========================
+Reference repo: https://github.com/Aestheticsuraj234/postman-clone
+Your repo:      c:\Users\Siddhesh S Patwa\OneDrive\Desktop\Postman\frontend\src
+
+Generated: October 3, 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ROOT-LEVEL CONFIG FILES MISSING
+────────────────────────────────────
+  - components.json          (shadcn config — needed for `npx shadcn add` to work)
+  - docker-compose.yml       (local Postgres setup)
+  - env-sample.txt           (template for .env variables)
+  - next.config.ts           (you may have next.config.js — check)
+
+
+2. src/app — MISSING FILES
+────────────────────────────
+  Reference has NO src/app/layout.tsx missing from you — you have it ✓
+  NOTE: Your auth folder is named "sing-in" (typo). Reference is "sign-in"
+        → Rename: src/app/(auth)/sing-in → src/app/(auth)/sign-in
+
+
+3. src/modules/Layout (capital L in reference) — MISSING FILES
+──────────────────────────────────────────────────────────────
+  Reference: src/modules/Layout/components/
+  Your path:  src/modules/layout/components/   (lowercase — may cause issues on Linux/Mac)
+
+  Reference has these extra files in Layout:
+    - src/modules/Layout/store/index.ts        (you have this ✓)
+    - src/modules/Layout/types/index.ts        (you have this ✓)
+
+  MISSING in your repo:
+    - src/modules/layout/types/index.ts        CHECK: you have UserProps only.
+      Reference likely has workspace-related types too.
+
+
+4. src/modules/workspace/components — MISSING FILES
+─────────────────────────────────────────────────────
+  Reference has:
+    - src/modules/workspace/components/sidebar.tsx          ✓ you have this
+    - src/modules/workspace/components/tabbed-left-panel.tsx  ✗ MISSING
+
+  Your repo has sidebar.tsx but is missing tabbed-left-panel.tsx.
+  This is the component that renders the left panel (collections, environments, etc.)
+  The (workspace)/layout.tsx currently has a placeholder "tabbed left panel" div.
+
+
+5. src/modules/collections/components — MISSING FILES
+───────────────────────────────────────────────────────
+  Reference has:
+    - add-request-modal.tsx    ✓ you have this
+    - collection-content.tsx   ✓ you have this
+    - collection-folder.tsx    ✓ you have this
+    - create-collection.tsx    ✓ you have this
+    - delete-collection.tsx    ✓ you have this
+    - edit-collection.tsx      ✓ you have this
+    - empty-collections.tsx    ✗ MISSING (your file is "empty-collection.tsx" — singular)
+      → Reference filename: empty-collections.tsx (plural)
+      → Check if your imports reference the correct name
+
+  NOTE: "add-request.tsx" exists in your repo but NOT in the reference.
+  This may be a locally-added extra file or renamed version.
+
+
+6. src/modules/request/components — MISSING FILES
+───────────────────────────────────────────────────
+  Reference has:
+    - add-name-modal.tsx       ✓ you have this
+    - body-editor.tsx          ✓ you have this
+    - key-value-form.tsx       ✓ you have this
+    - request-bar.tsx          ✓ you have this
+    - request-editor-area.tsx  ✓ you have this
+    - request-editor.tsx       ✓ you have this
+    - request-playground.tsx   ✗ NAMING MISMATCH — yours is "request-playgound.tsx" (typo)
+    - response-viewer.tsx      ✓ you have this
+    - save-to-collection-modal.tsx  ✓ you have this
+    - tab-bar.tsx              ✓ you have this
+
+  ISSUE: Your file is named "request-playgound.tsx" (missing 'r').
+  Reference is "request-playground.tsx". This is a typo in your filename.
+  If other files import from "request-playgound", update those imports too when you rename.
+
+
+7. src/modules/request — MISSING SUBDIRECTORIES / FILES
+─────────────────────────────────────────────────────────
+  Reference has:  src/modules/request/store/   (with store file)
+  You have:       src/modules/request/store/useRequeststore.ts  ✓
+
+  Reference has:  src/modules/request/types/   ✓ you added this yourself (not in reference!)
+  This is actually an improvement you made.
+
+
+8. src/modules/authentication — STRUCTURAL DIFFERENCES
+────────────────────────────────────────────────────────
+  Reference:  src/modules/authentication/actions/index.ts
+              src/modules/authentication/components/user-button.tsx
+
+  Your repo:  src/modules/authentication/action/index.ts   (singular "action" vs "actions")
+              src/modules/authentication/components/user-button.tsx  ✓
+
+  ALSO: You have a duplicate/legacy path:
+        src/authetication/  (typo — missing 'n' in authentication)
+          - src/authetication/actions/index.ts
+          - src/authetication/user-button.tsx   (root level, not in /components/)
+          - src/authetication/components/       (empty folder)
+
+  The reference uses src/modules/authentication/ only.
+  Your src/authetication/ folder is a leftover that should be cleaned up.
+
+
+9. src/app/api/ai — MISSING ROUTE FILE
+────────────────────────────────────────
+  Reference has:
+    - src/app/api/ai/generate-json/route.ts   (correct spelling)
+    - src/app/api/ai/suggest-name/route.ts    ✗ MISSING in your repo
+
+  Your repo has:
+    - src/app/api/ai/genearte-json/route.ts   (typo: "genearte" should be "generate")
+    - src/app/api/ai/suggest-name/            (folder exists but EMPTY — no route.ts)
+    - src/app/api/ai/route.ts                 (extra file not in reference)
+
+  ISSUES:
+    a) Your "genearte-json" folder has a typo — should be "generate-json"
+    b) src/app/api/ai/suggest-name/route.ts is MISSING (empty folder)
+
+
+10. src/modules/ai — MISSING FILES
+─────────────────────────────────────
+  Reference has:
+    - src/modules/ai/hooks/    (with hook file)   ✓ you have this
+    - src/modules/ai/services/ (with service file) ✓ you have this
+    - src/modules/ai/types/    (with types file)   ✓ you have this
+
+  All present. No files missing here.
+
+
+11. src/components/ui — MISSING FILES
+───────────────────────────────────────
+  Reference uses shadcn components. Your ui folder likely has most.
+  Files in your repo that are confirmed present: avatar, badge, button, card,
+  checkbox, collapsible, command, dialog, dropdown-menu, form, hint, input,
+  input-group, label, modal, resizable, scroll-area, select, separator,
+  sheet, sidebar, skeleton, tabs, textarea, tooltip.
+
+  MISSING compared to reference (based on what's used in code):
+    - src/components/ui/seperator.tsx  →  you have this BUT with a typo
+      Reference is "separator.tsx", yours was "seperator.tsx"
+      You may have both — check for duplicate and remove the misspelled one.
+
+
+12. src/lib — MISSING FILES
+──────────────────────────────
+  Reference likely has:
+    - src/lib/auth.ts         ✓ you have this
+    - src/lib/auth-client.ts  ✓ you have this
+    - src/lib/db.ts           ✓ you have this
+    - src/lib/env.ts          ✓ you have this
+    - src/lib/utils.ts        ✓ you have this
+    - src/lib/ai-agent.ts     ✓ you have this (added by you)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUMMARY OF WHAT NEEDS TO BE ADDED / FIXED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FILES THAT ARE COMPLETELY MISSING:
+  1. src/modules/workspace/components/tabbed-left-panel.tsx
+  2. src/app/api/ai/suggest-name/route.ts
+  3. components.json  (root level)
+  4. docker-compose.yml  (root level)
+  5. env-sample.txt  (root level)
+
+TYPOS / NAMING ISSUES TO FIX:
+  6.  src/app/(auth)/sing-in/             → rename to sign-in
+  7.  src/app/api/ai/genearte-json/       → rename to generate-json
+  8.  src/modules/request/components/request-playgound.tsx  → rename to request-playground.tsx
+  9.  src/components/ui/seperator.tsx     → rename to separator.tsx (or remove if duplicate)
+  10. src/modules/collections/components/empty-collection.tsx  → check if should be empty-collections.tsx
+
+LEGACY / DUPLICATE PATHS TO CLEAN UP:
+  11. src/authetication/  (entire folder — misspelled legacy path)
+      Real code lives in src/modules/authentication/ and src/authetication/actions/
+      Need to consolidate and update all imports
+
+EMPTY FOLDERS TO FILL:
+  12. src/app/api/ai/suggest-name/   — missing route.ts
+  13. src/authetication/components/  — empty (should be deleted)
+  14. src/modules/collections/store/ — empty (reference may have store here)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
